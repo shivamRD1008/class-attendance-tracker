@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Class Attendance Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- jsPDF + AutoTable CDN for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.3/jspdf.plugin.autotable.min.js"></script>
+
+  <!-- SIMPLE STYLES (ALL IN ONE FILE) -->
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: #f3f4f6;
+      color: #111827;
+    }
+
+    header {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: white;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    header p {
+      margin: 2px 0 0;
+      font-size: 12px;
+      opacity: 0.9;
+    }
+
+    .brand-block {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    nav {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .nav-btn {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      background: rgba(255,255,255,0.15);
+      color: white;
+      backdrop-filter: blur(6px);
+      transition: all 0.15s ease;
+    }
+
+    .nav-btn.active,
+    .nav-btn:hover {
+      background: white;
+      color: #1d4ed8;
+      transform: translateY(-1px);
+    }
+
+    .logout-btn {
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(248,250,252,0.7);
+      background: rgba(248,250,252,0.1);
+      color: #fee2e2;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      display: none; /* hidden until login */
+      backdrop-filter: blur(6px);
+      transition: all 0.15s ease;
+    }
+
+    .logout-btn:hover {
+      background: #fee2e2;
+      color: #b91c1c;
+      transform: translateY(-1px);
+    }
+
+    main {
+      padding: 20px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 18px 20px;
+      box-shadow: 0 10px 30px rgba(15,23,42,0.08);
+      margin-bottom: 18px;
+    }
+
+    h2 {
+      margin-top: 0;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    h2 span.badge {
+      background: #e0f2fe;
+      color: #0369a1;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .form-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .form-field {
+      flex: 1 1 220px;
+      display: flex;
+      flex-direction: column;
+      font-size: 13px;
+    }
+
+    .form-field label {
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .form-field input,
+    .form-field select {
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid #d1d5db;
+      font-size: 13px;
+      outline: none;
+      transition: border 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .form-field input:focus,
+    .form-field select:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
+    }
+
+    .btn {
+      border: none;
+      border-radius: 10px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.1s ease;
+    }
+
+    .btn-primary {
+      background: #2563eb;
+      color: white;
+      box-shadow: 0 8px 16px rgba(37,99,235,0.35);
+    }
+
+    .btn-primary:hover {
+      background: #1d4ed8;
+      transform: translateY(-1px);
+    }
+
+    .btn-outline {
+      background: white;
+      border: 1px solid #d1d5db;
+      color: #374151;
+    }
+
+    .btn-outline:hover {
+      background: #f3f4f6;
+    }
+
+    .btn-sm {
+      padding: 6px 10px;
+      font-size: 11px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: #f3f4ff;
+      color: #4f46e5;
+      margin-bottom: 8px;
+    }
+
+    .status-ok {
+      color: #16a34a;
+      font-weight: 500;
+      font-size: 12px;
+    }
+
+    .status-bad {
+      color: #b91c1c;
+      font-weight: 500;
+      font-size: 12px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 13px;
+    }
+
+    th, td {
+      padding: 8px 6px;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+    }
+
+    thead {
+      background: #f9fafb;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+
+    th {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #6b7280;
+    }
+
+    tbody tr:hover {
+      background: #f9fafb;
+    }
+
+    .attendance-toggle {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .square-btn {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      border: 1px solid #d1d5db;
+      background: #f9fafb;
+      cursor: pointer;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.12s ease;
+    }
+
+    .square-btn.present.active {
+      background: #dcfce7;
+      border-color: #22c55e;
+      color: #15803d;
+      box-shadow: 0 0 0 1px rgba(34,197,94,0.5);
+    }
+
+    .square-btn.absent.active {
+      background: #fee2e2;
+      border-color: #ef4444;
+      color: #b91c1c;
+      box-shadow: 0 0 0 1px rgba(239,68,68,0.5);
+    }
+
+    .square-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .chip {
+      display: inline-flex;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    .chip-success {
+      background: #dcfce7;
+      color: #15803d;
+    }
+
+    .chip-danger {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    .text-muted {
+      color: #9ca3af;
+      font-size: 12px;
+    }
+
+    .flex-between {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .mt-1 { margin-top: 4px; }
+    .mt-2 { margin-top: 8px; }
+    .mt-3 { margin-top: 12px; }
+
+    .hidden { display: none !important; }
+
+    .tag {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    @media (max-width: 640px) {
+      header {
+        align-items: flex-start;
+      }
+      main {
+        padding: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="brand-block">
+    <h1>Trinity College of Engineering and Research, Pune</h1>
+    <p>B.Tech – Class Attendance Tracker (Web Demo)</p>
+  </div>
+
+  <div class="header-right">
+    <nav>
+      <button class="nav-btn active" data-page="authPage">Teacher Login</button>
+      <button class="nav-btn" data-page="attendancePage">Take Attendance</button>
+      <button class="nav-btn" data-page="adminPage">Admin View</button>
+    </nav>
+    <button id="logoutBtn" class="logout-btn">⎋ Logout</button>
+  </div>
+</header>
+
+<main>
+  <!-- AUTH PAGE -->
+  <section id="authPage" class="card">
+    <h2>
+      Teacher Access
+      <span class="badge">OTP Demo</span>
+    </h2>
+
+    <div class="pill">
+      🔐 Secure Access &nbsp;•&nbsp; Register once, then login with mobile + OTP
+    </div>
+
+    <div class="form-row">
+      <div class="form-field">
+        <label for="teacherName">Teacher Name</label>
+        <input type="text" id="teacherName" placeholder="e.g. Prof. ABC">
+      </div>
+      <div class="form-field">
+        <label for="mobileNumber">Mobile Number</label>
+        <input type="tel" id="mobileNumber" maxlength="10" placeholder="10-digit mobile">
+      </div>
+      <div class="form-field">
+        <label for="otpInput">OTP</label>
+        <input type="text" id="otpInput" maxlength="6" placeholder="Enter 6-digit OTP">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <button id="sendOtpBtn" class="btn btn-outline">
+        📲 Send OTP (Demo)
+      </button>
+      <button id="registerBtn" class="btn btn-primary">
+        📝 Register
+      </button>
+      <button id="loginBtn" class="btn btn-outline">
+        🔓 Login
+      </button>
+    </div>
+
+    <p class="mt-2 text-muted">
+      For project demo: OTP is generated in JavaScript and shown on screen instead of real SMS.
+      In a production system you would call an SMS API (Twilio, etc.) from the backend.
+    </p>
+
+    <p class="mt-1" id="authStatus"></p>
+  </section>
+
+  <!-- ATTENDANCE PAGE -->
+  <section id="attendancePage" class="card hidden">
+    <h2>
+      Daily Attendance
+      <span class="badge">Teacher Panel</span>
+    </h2>
+
+    <div class="flex-between">
+      <div>
+        <span class="tag">Logged in as</span>
+        <div class="mt-1"><strong id="currentTeacherName">No teacher logged in</strong></div>
+      </div>
+      <div class="text-muted">
+        📅 Date:
+        <input type="date" id="attendanceDate">
+      </div>
+    </div>
+
+    <div class="form-row mt-3">
+      <div class="form-field">
+        <label for="divisionSelect">Division</label>
+        <select id="divisionSelect">
+          <option value="IT-D">IT – Division D</option>
+          <option value="IT-E">IT – Division E</option>
+          <option value="IT-F">IT – Division F</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Quick Actions</label>
+        <div class="form-row">
+          <button id="markAllPresentBtn" class="btn btn-outline btn-sm">✅ Mark All Present</button>
+          <button id="clearMarksBtn" class="btn btn-outline btn-sm">🧹 Clear Marks</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-2">
+      <span class="text-muted">
+        Student List is fixed (Roll 1–20) as per IT division record.  
+        Each row has <strong>Present</strong> and <strong>Absent</strong> square buttons.
+      </span>
+    </div>
+
+    <div class="mt-2" style="max-height: 360px; overflow: auto; border-radius: 12px; border: 1px solid #e5e7eb;">
+      <table>
+        <thead>
+          <tr>
+            <th>Roll No.</th>
+            <th>Student Name</th>
+            <th>Branch</th>
+            <th>Mark</th>
+          </tr>
+        </thead>
+        <tbody id="studentsTableBody">
+          <!-- Filled by JS -->
+        </tbody>
+      </table>
+    </div>
+
+    <div class="flex-between mt-3">
+      <div>
+        <span id="summaryText" class="text-muted">No attendance marked yet.</span>
+      </div>
+      <div>
+        <button id="saveAttendanceBtn" class="btn btn-primary">
+          💾 Save Attendance
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ADMIN PAGE -->
+  <section id="adminPage" class="card hidden">
+    <h2>
+      Admin Dashboard
+      <span class="badge">All Records</span>
+    </h2>
+
+    <div class="pill">
+      📊 View attendance for all dates, divisions, and teachers. Export any record as PDF.
+    </div>
+
+    <div class="form-row mt-2">
+      <div class="form-field">
+        <label for="adminDivisionFilter">Filter by Division</label>
+        <select id="adminDivisionFilter">
+          <option value="ALL">All Divisions</option>
+          <option value="IT-D">IT – Division D</option>
+          <option value="IT-E">IT – Division E</option>
+          <option value="IT-F">IT – Division F</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label for="adminDateFilter">Filter by Date</label>
+        <input type="date" id="adminDateFilter">
+      </div>
+      <div class="form-field">
+        <label>&nbsp;</label>
+        <button id="clearAdminFiltersBtn" class="btn btn-outline btn-sm">Clear Filters</button>
+      </div>
+    </div>
+
+    <div class="mt-2" style="max-height: 360px; overflow: auto; border-radius: 12px; border: 1px solid #e5e7eb;">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Division</th>
+            <th>Teacher</th>
+            <th>Present</th>
+            <th>Absent</th>
+            <th>Details</th>
+            <th>PDF</th>
+          </tr>
+        </thead>
+        <tbody id="adminTableBody">
+          <!-- Filled by JS -->
+        </tbody>
+      </table>
+    </div>
+
+    <p class="mt-2 text-muted">
+      Data is stored in <strong>browser localStorage</strong>.  
+      Click <strong>PDF</strong> to download a formatted attendance PDF for that record.
+    </p>
+
+    <div id="adminDetailPanel" class="mt-2 hidden">
+      <h3 style="font-size: 14px; margin-bottom:4px;">Record Details</h3>
+      <p class="text-muted" id="adminDetailHeader"></p>
+      <div style="max-height: 220px; overflow:auto; border-radius: 10px; border:1px solid #e5e7eb; margin-top:6px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Roll</th>
+              <th>Name</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="adminDetailBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- JAVASCRIPT -->
+<script>
+  // ---------------------------------------------
+  // MOCK STUDENT DATA (Roll 1–20)
+  // ---------------------------------------------
+  const baseStudents = [
+    { roll: 1, name: "ALZEND ETHAN PRAKASH" },
+    { roll: 2, name: "AMRUTWAR SHRAVANI KISHOR" },
+    { roll: 3, name: "BHALERAO TANISHKA NANDU" },
+    { roll: 4, name: "BHANAVASE SAMARTH LAXMAN" },
+    { roll: 5, name: "BHOYAR SAMIT ANIL" },
+    { roll: 6, name: "DABIR ALMOIZ KHALID" },
+    { roll: 7, name: "DAGDE GOVIND SHIVAJI" },
+    { roll: 8, name: "DALGADE SHREYASH RAJSHEKHAR" },
+    { roll: 9, name: "DHAGE SHIVANI ASHOK" },
+    { roll:10, name: "DHULSHETE SHIVAM RAJKUMAR" },
+    { roll:11, name: "DRUP SANJAY RATHOD" },
+    { roll:12, name: "DURGA MOHAN KAMBLE" },
+    { roll:13, name: "GAVANDE DIPAK DASHRATH" },
+    { roll:14, name: "GAYDHANE YASHRAJ SANTOSH" },
+    { roll:15, name: "GHADIYALI MUFADDAL SAMOIL" },
+    { roll:16, name: "GOURAV RAMESH BOLLEWAR" },
+    { roll:17, name: "HANDE VAIBHAV SANTOSH" },
+    { roll:18, name: "JATAL SANJAY SATISH" },
+    { roll:19, name: "MANE ATHARV UDAYKUMAR" },
+    { roll:20, name: "MANNAN RAMJAN SHAIKH" }
+  ];
+
+  // All divisions share same list for demo
+  const divisionStudents = {
+    "IT-D": baseStudents,
+    "IT-E": baseStudents,
+    "IT-F": baseStudents
+  };
+
+  // ---------------------------------------------
+  // SIMPLE STATE + LOCAL STORAGE KEYS
+  // ---------------------------------------------
+  const LS_TEACHERS = "attend_teachers";
+  const LS_ATTENDANCE = "attend_records";
+
+  let currentTeacher = null;
+  let lastOtp = null;
+  let lastOtpMobile = null;
+
+  const todayStr = () => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  // ---------------------------------------------
+  // UTIL: Local Storage helpers
+  // ---------------------------------------------
+  function getTeachers() {
+    return JSON.parse(localStorage.getItem(LS_TEACHERS) || "[]");
+  }
+  function saveTeachers(list) {
+    localStorage.setItem(LS_TEACHERS, JSON.stringify(list));
+  }
+  function getAttendanceRecords() {
+    return JSON.parse(localStorage.getItem(LS_ATTENDANCE) || "[]");
+  }
+  function saveAttendanceRecords(list) {
+    localStorage.setItem(LS_ATTENDANCE, JSON.stringify(list));
+  }
+
+  // ---------------------------------------------
+  // PAGE NAVIGATION (helper)
+  // ---------------------------------------------
+  const pages = {
+    authPage: document.getElementById("authPage"),
+    attendancePage: document.getElementById("attendancePage"),
+    adminPage: document.getElementById("adminPage")
+  };
+  const navButtons = document.querySelectorAll(".nav-btn");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const currentTeacherName = document.getElementById("currentTeacherName");
+  const authStatus = document.getElementById("authStatus");
+  const attendanceDateInput = document.getElementById("attendanceDate");
+
+  function showPage(pageId) {
+    if ((pageId === "attendancePage" || pageId === "adminPage") && !currentTeacher) {
+      alert("Please login as a teacher first.");
+      return;
+    }
+    Object.values(pages).forEach(p => p.classList.add("hidden"));
+    pages[pageId].classList.remove("hidden");
+    navButtons.forEach(b => {
+      if (b.dataset.page === pageId) b.classList.add("active");
+      else b.classList.remove("active");
+    });
+    if (pageId === "attendancePage") {
+      renderStudentsTable();
+    } else if (pageId === "adminPage") {
+      refreshAdminTable();
+    }
+  }
+
+  navButtons.forEach(btn => {
+    btn.addEventListener("click", () => showPage(btn.dataset.page));
+  });
+
+  // LOGOUT
+  logoutBtn.addEventListener("click", () => {
+    currentTeacher = null;
+    lastOtp = null;
+    lastOtpMobile = null;
+    currentTeacherName.textContent = "No teacher logged in";
+    authStatus.textContent = "";
+    logoutBtn.style.display = "none";
+    showPage("authPage");
+    alert("You have been logged out.");
+  });
+
+  // ---------------------------------------------
+  // AUTH: OTP, Register, Login
+  // ---------------------------------------------
+  const teacherNameInput = document.getElementById("teacherName");
+  const mobileInput = document.getElementById("mobileNumber");
+  const otpInput = document.getElementById("otpInput");
+  const sendOtpBtn = document.getElementById("sendOtpBtn");
+  const registerBtn = document.getElementById("registerBtn");
+  const loginBtn = document.getElementById("loginBtn");
+
+  sendOtpBtn.addEventListener("click", () => {
+    const mobile = mobileInput.value.trim();
+    if (!/^\d{10}$/.test(mobile)) {
+      alert("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+    lastOtp = String(Math.floor(100000 + Math.random() * 900000));
+    lastOtpMobile = mobile;
+
+    alert("Demo OTP for " + mobile + " is: " + lastOtp +
+      "\n\n(In real system this would be sent via SMS.)");
+
+    authStatus.innerHTML =
+      '<span class="status-ok">OTP generated. Please check the alert and enter it in the OTP box.</span>';
+  });
+
+  function afterSuccessfulLogin(name) {
+    currentTeacherName.textContent = name;
+    attendanceDateInput.value = todayStr();
+    authStatus.innerHTML =
+      '<span class="status-ok">Login successful! Redirecting to attendance...</span>';
+    logoutBtn.style.display = "inline-flex";  // show logout button
+    showPage("attendancePage");
+  }
+
+  registerBtn.addEventListener("click", () => {
+    const name = teacherNameInput.value.trim();
+    const mobile = mobileInput.value.trim();
+    const otp = otpInput.value.trim();
+
+    if (!name) {
+      alert("Please enter teacher name.");
+      return;
+    }
+    if (!/^\d{10}$/.test(mobile)) {
+      alert("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+    if (!otp || otp !== lastOtp || mobile !== lastOtpMobile) {
+      alert("Invalid OTP. Please click 'Send OTP' again and enter correct code.");
+      return;
+    }
+
+    const teachers = getTeachers();
+    if (teachers.some(t => t.mobile === mobile)) {
+      authStatus.innerHTML =
+        '<span class="status-bad">Teacher already registered. Use Login.</span>';
+      return;
+    }
+    teachers.push({ name, mobile });
+    saveTeachers(teachers);
+
+    currentTeacher = { name, mobile };
+    afterSuccessfulLogin(name);
+  });
+
+  loginBtn.addEventListener("click", () => {
+    const mobile = mobileInput.value.trim();
+    const otp = otpInput.value.trim();
+
+    if (!/^\d{10}$/.test(mobile)) {
+      alert("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+    const teachers = getTeachers();
+    const found = teachers.find(t => t.mobile === mobile);
+    if (!found) {
+      authStatus.innerHTML =
+        '<span class="status-bad">No account found. Please Register first.</span>';
+      return;
+    }
+    if (!otp || otp !== lastOtp || mobile !== lastOtpMobile) {
+      alert("Invalid OTP. Please click 'Send OTP' again and enter correct code.");
+      return;
+    }
+
+    currentTeacher = found;
+    afterSuccessfulLogin(found.name);
+  });
+
+  // ---------------------------------------------
+  // ATTENDANCE: Render Student List
+  // ---------------------------------------------
+  const divisionSelect = document.getElementById("divisionSelect");
+  const studentsTableBody = document.getElementById("studentsTableBody");
+  const markAllPresentBtn = document.getElementById("markAllPresentBtn");
+  const clearMarksBtn = document.getElementById("clearMarksBtn");
+  const summaryText = document.getElementById("summaryText");
+  const saveAttendanceBtn = document.getElementById("saveAttendanceBtn");
+
+  divisionSelect.addEventListener("change", renderStudentsTable);
+
+  function renderStudentsTable() {
+    const division = divisionSelect.value;
+    const list = divisionStudents[division] || [];
+    studentsTableBody.innerHTML = "";
+
+    list.forEach(student => {
+      const tr = document.createElement("tr");
+
+      const tdRoll = document.createElement("td");
+      tdRoll.textContent = student.roll;
+      const tdName = document.createElement("td");
+      tdName.textContent = student.name;
+      const tdBranch = document.createElement("td");
+      tdBranch.textContent = "Information Technology";
+      const tdMark = document.createElement("td");
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "attendance-toggle";
+
+      const presentBtn = document.createElement("button");
+      presentBtn.type = "button";
+      presentBtn.className = "square-btn present";
+      presentBtn.innerHTML = "P";
+
+      const absentBtn = document.createElement("button");
+      absentBtn.type = "button";
+      absentBtn.className = "square-btn absent";
+      absentBtn.innerHTML = "A";
+
+      presentBtn.addEventListener("click", () => {
+        presentBtn.classList.toggle("active");
+        if (presentBtn.classList.contains("active")) {
+          absentBtn.classList.remove("active");
+        }
+        updateSummary();
+      });
+
+      absentBtn.addEventListener("click", () => {
+        absentBtn.classList.toggle("active");
+        if (absentBtn.classList.contains("active")) {
+          presentBtn.classList.remove("active");
+        }
+        updateSummary();
+      });
+
+      wrapper.appendChild(presentBtn);
+      wrapper.appendChild(absentBtn);
+      tdMark.appendChild(wrapper);
+
+      tr.appendChild(tdRoll);
+      tr.appendChild(tdName);
+      tr.appendChild(tdBranch);
+      tr.appendChild(tdMark);
+
+      studentsTableBody.appendChild(tr);
+    });
+
+    updateSummary();
+  }
+
+  function updateSummary() {
+    const rows = [...studentsTableBody.querySelectorAll("tr")];
+    let present = 0, absent = 0, unmarked = 0;
+    rows.forEach(row => {
+      const [presentBtn, absentBtn] = row.querySelectorAll(".square-btn");
+      if (presentBtn.classList.contains("active")) present++;
+      else if (absentBtn.classList.contains("active")) absent++;
+      else unmarked++;
+    });
+    const total = rows.length || 0;
+    if (total === 0) {
+      summaryText.textContent = "No students in list.";
+      return;
+    }
+    const perc = total ? Math.round((present / total) * 100) : 0;
+    summaryText.innerHTML =
+      `Present: <strong>${present}</strong> &nbsp;•&nbsp; Absent: <strong>${absent}</strong> &nbsp;•&nbsp; Unmarked: <strong>${unmarked}</strong> &nbsp;|&nbsp; Attendance: <strong>${perc}%</strong>`;
+  }
+
+  markAllPresentBtn.addEventListener("click", () => {
+    studentsTableBody.querySelectorAll("tr").forEach(row => {
+      const [presentBtn, absentBtn] = row.querySelectorAll(".square-btn");
+      presentBtn.classList.add("active");
+      absentBtn.classList.remove("active");
+    });
+    updateSummary();
+  });
+
+  clearMarksBtn.addEventListener("click", () => {
+    studentsTableBody.querySelectorAll(".square-btn").forEach(btn => {
+      btn.classList.remove("active");
+    });
+    updateSummary();
+  });
+
+  // ---------------------------------------------
+  // SAVE ATTENDANCE
+  // ---------------------------------------------
+  saveAttendanceBtn.addEventListener("click", () => {
+    if (!currentTeacher) {
+      alert("Please login first.");
+      return;
+    }
+    const date = attendanceDateInput.value || todayStr();
+    const division = divisionSelect.value;
+
+    const rows = [...studentsTableBody.querySelectorAll("tr")];
+    const students = [];
+    rows.forEach(row => {
+      const roll = parseInt(row.children[0].textContent, 10);
+      const name = row.children[1].textContent;
+      const [presentBtn, absentBtn] = row.querySelectorAll(".square-btn");
+      let status = "Unmarked";
+      if (presentBtn.classList.contains("active")) status = "Present";
+      else if (absentBtn.classList.contains("active")) status = "Absent";
+      students.push({ roll, name, status });
+    });
+
+    const presentCount = students.filter(s => s.status === "Present").length;
+    const absentCount = students.filter(s => s.status === "Absent").length;
+
+    const records = getAttendanceRecords();
+    records.push({
+      id: Date.now(),
+      date,
+      division,
+      teacher: currentTeacher.name,
+      mobile: currentTeacher.mobile,
+      presentCount,
+      absentCount,
+      students
+    });
+    saveAttendanceRecords(records);
+
+    alert("Attendance saved successfully!");
+    refreshAdminTable();
+  });
+
+  // ---------------------------------------------
+  // ADMIN TABLE + PDF EXPORT
+  // ---------------------------------------------
+  const adminDivisionFilter = document.getElementById("adminDivisionFilter");
+  const adminDateFilter = document.getElementById("adminDateFilter");
+  const clearAdminFiltersBtn = document.getElementById("clearAdminFiltersBtn");
+  const adminTableBody = document.getElementById("adminTableBody");
+  const adminDetailPanel = document.getElementById("adminDetailPanel");
+  const adminDetailHeader = document.getElementById("adminDetailHeader");
+  const adminDetailBody = document.getElementById("adminDetailBody");
+
+  adminDivisionFilter.addEventListener("change", refreshAdminTable);
+  adminDateFilter.addEventListener("change", refreshAdminTable);
+  clearAdminFiltersBtn.addEventListener("click", () => {
+    adminDivisionFilter.value = "ALL";
+    adminDateFilter.value = "";
+    refreshAdminTable();
+  });
+
+  function refreshAdminTable() {
+    const records = getAttendanceRecords();
+    const divFilter = adminDivisionFilter.value;
+    const dateFilter = adminDateFilter.value;
+
+    adminTableBody.innerHTML = "";
+    adminDetailPanel.classList.add("hidden");
+
+    records
+      .filter(r => (divFilter === "ALL" || r.division === divFilter))
+      .filter(r => (!dateFilter || r.date === dateFilter))
+      .sort((a,b) => (a.date < b.date ? 1 : -1))
+      .forEach(record => {
+        const tr = document.createElement("tr");
+
+        const tdDate = document.createElement("td");
+        tdDate.textContent = record.date;
+        const tdDiv = document.createElement("td");
+        tdDiv.textContent = record.division;
+        const tdTeacher = document.createElement("td");
+        tdTeacher.textContent = record.teacher;
+        const tdPresent = document.createElement("td");
+        tdPresent.innerHTML = `<span class="chip chip-success">${record.presentCount}</span>`;
+        const tdAbsent = document.createElement("td");
+        tdAbsent.innerHTML = `<span class="chip chip-danger">${record.absentCount}</span>`;
+        const tdDetails = document.createElement("td");
+        const tdPdf = document.createElement("td");
+
+        const btnView = document.createElement("button");
+        btnView.className = "btn btn-outline btn-sm";
+        btnView.textContent = "View";
+        btnView.addEventListener("click", () => showRecordDetail(record));
+        tdDetails.appendChild(btnView);
+
+        const btnPdf = document.createElement("button");
+        btnPdf.className = "btn btn-primary btn-sm";
+        btnPdf.textContent = "PDF";
+        btnPdf.addEventListener("click", () => exportRecordToPdf(record));
+        tdPdf.appendChild(btnPdf);
+
+        tr.appendChild(tdDate);
+        tr.appendChild(tdDiv);
+        tr.appendChild(tdTeacher);
+        tr.appendChild(tdPresent);
+        tr.appendChild(tdAbsent);
+        tr.appendChild(tdDetails);
+        tr.appendChild(tdPdf);
+
+        adminTableBody.appendChild(tr);
+      });
+
+    if (!adminTableBody.children.length) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 7;
+      td.className = "text-muted";
+      td.textContent = "No attendance records found for selected filters.";
+      tr.appendChild(td);
+      adminTableBody.appendChild(tr);
+    }
+  }
+
+  function showRecordDetail(record) {
+    adminDetailPanel.classList.remove("hidden");
+    adminDetailHeader.textContent =
+      `Date: ${record.date} | Division: ${record.division} | Teacher: ${record.teacher}`;
+    adminDetailBody.innerHTML = "";
+    record.students.forEach(s => {
+      const tr = document.createElement("tr");
+      const tdRoll = document.createElement("td");
+      tdRoll.textContent = s.roll;
+      const tdName = document.createElement("td");
+      tdName.textContent = s.name;
+      const tdStatus = document.createElement("td");
+      tdStatus.textContent = s.status;
+      tr.appendChild(tdRoll);
+      tr.appendChild(tdName);
+      tr.appendChild(tdStatus);
+      adminDetailBody.appendChild(tr);
+    });
+  }
+
+  // ---------- PDF EXPORT USING jsPDF ----------
+  function exportRecordToPdf(record) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Header
+    doc.setFontSize(14);
+    doc.text("Trinity College of Engineering and Research, Pune", 105, 12, { align: "center" });
+    doc.setFontSize(11);
+    doc.text("Department of Information Technology", 105, 18, { align: "center" });
+
+    doc.setFontSize(12);
+    doc.text("Class Attendance Report", 105, 26, { align: "center" });
+
+    // Meta info
+    doc.setFontSize(10);
+    doc.text(`Date: ${record.date}`, 14, 36);
+    doc.text(`Division: ${record.division}`, 14, 42);
+    doc.text(`Teacher: ${record.teacher}`, 14, 48);
+    doc.text(`Mobile: ${record.mobile}`, 14, 54);
+
+    doc.text(`Present: ${record.presentCount}`, 140, 36);
+    doc.text(`Absent: ${record.absentCount}`, 140, 42);
+    const total = record.students.length;
+    const perc = total ? Math.round((record.presentCount / total) * 100) : 0;
+    doc.text(`Attendance %: ${perc}%`, 140, 48);
+
+    // Table data
+    const body = record.students.map(s => [
+      s.roll,
+      s.name,
+      s.status
+    ]);
+
+    doc.autoTable({
+      startY: 62,
+      head: [["Roll No.", "Student Name", "Status"]],
+      body
+    });
+
+    // footer
+    const finalY = doc.lastAutoTable.finalY || 270;
+    doc.setFontSize(9);
+    doc.text("Generated by Class Attendance Tracker (Web Demo)", 14, finalY + 10);
+
+    const fileName = `Attendance_${record.division}_${record.date}.pdf`;
+    doc.save(fileName);
+  }
+
+  // ---------------------------------------------
+  // INITIAL SETUP
+  // ---------------------------------------------
+  attendanceDateInput.value = todayStr();
+  renderStudentsTable();
+</script>
+</body>
+</html>
